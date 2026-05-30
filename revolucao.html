@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cone 3D - Sólido de Revolução</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body, html { 
+            width: 100%;
+            height: 100%;
+            background-color: #121214; 
+            color: #ffffff; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        #canvas-container { 
+            width: 100%; 
+            height: 100%; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #painel-controle { 
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 750px;
+            background-color: rgba(26, 26, 30, 0.9); 
+            padding: 22px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(63, 63, 70, 0.5); 
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7); 
+            backdrop-filter: blur(16px);
+            z-index: 10;
+        }
+
+        .texto-painel {
+            text-align: center;
+            width: 100%;
+        }
+
+        h2 { 
+            font-size: 1.4rem; 
+            margin-bottom: 6px; 
+            color: #00ff88; 
+        }
+
+        p { 
+            font-size: 0.9rem; 
+            color: #d4d4d8; 
+            line-height: 1.5;
+            max-width: 650px;
+            margin: 0 auto 5px auto;
+        }
+
+        .controles-interacao {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .container-slider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-grow: 1;
+            background: rgba(39, 39, 42, 0.6);
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(63, 63, 70, 0.3);
+        }
+
+        .slider-revolucao {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #3f3f46;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider-revolucao::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .slider-revolucao::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .valor-angulo {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #00ff88;
+            min-width: 55px;
+            text-align: right;
+        }
+
+        .btn-animar { 
+            background-color: #2c2c30; 
+            color: #ffffff; 
+            border: 1px solid #3f3f46; 
+            padding: 12px 20px; 
+            font-size: 0.85rem; 
+            font-weight: 600; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+        }
+
+        .btn-animar:hover { 
+            background-color: #3f3f46; 
+            border-color: #00ff88;
+            transform: translateY(-2px); 
+        }
+
+        .btn-animar.ativo {
+            background-color: rgba(0, 255, 136, 0.15);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .legenda-eixo {
+            font-size: 0.75rem;
+            color: #71717a;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="painel-controle">
+        <div class="texto-painel">
+            <h2>Sólido de Revolução</h2>
+            <p>O cone reto é gerado através da <strong>revolução (rotação de 360°)</strong> de um triângulo retângulo em torno de um eixo fixo que passa por um de seus catetos.</p>
+        </div>
+        
+        <div class="controles-interacao">
+            <button id="btn-play" onclick="alternarAutoPlay()" class="btn-animar">Rotação Automática</button>
+            
+            <div class="container-slider">
+                <input type="range" id="slider-angulo" min="0" max="360" value="0" class="slider-revolucao" oninput="ajustarAnguloManual(this.value)">
+                <span id="display-angulo" class="valor-angulo">0°</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let grupoTriangulo, coneMesh;
+        let animacaoAutomatica = false;
+        let anguloAtual = 0;
+
+        const raioCone = 2, alturaCone = 4;
+
+        initThree();
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x121214);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 7);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, alturaCone / 2, 0);
+
+            // Iluminação limpa para destacar volumes transparentes
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(5, 10, 5);
+            scene.add(dirLight);
+
+            scene.add(new THREE.GridHelper(20, 20, 0x3f3f46, 0x222225));
+
+            construirElementos();
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function construirElementos() {
+            // 1. EIXO DE ROTAÇÃO (Linha tracejada vertical)
+            const geoEixo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -0.5, 0),
+                new THREE.Vector3(0, alturaCone + 1, 0)
+            ]);
+            const matEixo = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1 });
+            const linhaEixo = new THREE.Line(geoEixo, matEixo);
+            linhaEixo.computeLineDistances(); // Obrigatório para aplicar o tracejado
+            scene.add(linhaEixo);
+
+            // 2. GRUPO DO TRIÂNGULO GERADOR (Ele rotacionará inteiro com base no eixo Y)
+            grupoTriangulo = new THREE.Group();
+            scene.add(grupoTriangulo);
+
+            // Criando o formato plano do triângulo retângulo interno
+            const formatoTriangulo = new THREE.Shape();
+            formatoTriangulo.moveTo(0, 0);                   // Centro inferior da base
+            formatoTriangulo.lineTo(raioCone, 0);            // Cateto da base (Raio)
+            formatoTriangulo.lineTo(0, alturaCone);          // Hipotenusa subindo até o Vértice
+            formatoTriangulo.lineTo(0, 0);                   // Cateto vertical (Altura)
+
+            const geoPlanoTriangulo = new THREE.ShapeGeometry(formatoTriangulo);
+            const matPlanoTriangulo = new THREE.MeshBasicMaterial({ 
+                color: 0xff3366, 
+                side: THREE.DoubleSide, 
+                transparent: true, 
+                opacity: 0.45 
+            });
+            const meshPlanoTriangulo = new THREE.Mesh(geoPlanoTriangulo, matPlanoTriangulo);
+            grupoTriangulo.add(meshPlanoTriangulo);
+
+            // Bordas sólidas para destacar o triângulo
+            const geoBordaTriangulo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(raioCone, 0, 0),
+                new THREE.Vector3(0, alturaCone, 0),
+                new THREE.Vector3(0, 0, 0)
+            ]);
+            const matBordaTriangulo = new THREE.LineBasicMaterial({ color: 0xff3366, linewidth: 3 });
+            const linhaBordaTriangulo = new THREE.Line(geoBordaTriangulo, matBordaTriangulo);
+            grupoTriangulo.add(linhaBordaTriangulo);
+
+            // 3. INICIALIZAÇÃO DA MALHA DO CONE DE REVOLUÇÃO (Começa vazio em 0°)
+            renderizarConeParcial(0);
+        }
+
+        // Reconstrói a malha do cone dinamicamente com base no ângulo atual
+        function renderizarConeParcial(anguloGraus) {
+            if (coneMesh) scene.remove(coneMesh);
+
+            if (anguloGraus <= 0) return;
+
+            // Converte o valor numérico em graus para radianos exigidos pelo Three.js
+            let radianos = (anguloGraus * Math.PI) / 180;
+
+            // O segredo está no último parâmetro da CylinderGeometry (thetaLength). Ele determina a "fatia" circular aberta.
+            // CylinderGeometry(raioSuperior, raioInferior, altura, segmentosRadiais, segmentosAltura, aberto/fechado, thetaStart, thetaLength)
+            const geoCone = new THREE.CylinderGeometry(0, raioCone, alturaCone, 64, 1, false, 0, radianos);
+            const matCone = new THREE.MeshPhongMaterial({
+                color: 0x00ff88,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide,
+                shininess: 80
+            });
+
+            coneMesh = new THREE.Mesh(geoCone, matCone);
+            
+            // Centraliza o cilindro/cone no ponto correto do espaço tridimensional
+            coneMesh.position.y = alturaCone / 2;
+            
+            // Inverte o cone no eixo Z para alinhar perfeitamente com a face frontal do triângulo gerador original
+            coneMesh.scale.set(1, 1, -1);
+            
+            scene.add(coneMesh);
+        }
+
+        // Acionado quando o usuário arrasta manualmente a barra deslizante
+        function ajustarAnguloManual(valor) {
+            if (animacaoAutomatica) alternarAutoPlay(); // Pausa a reprodução automática se o usuário assumir o controle
+            atualizarCena(parseFloat(valor));
+        }
+
+        // Atualiza a sincronização matemática entre o triângulo, a malha e a interface textual
+        function atualizarCena(graus) {
+            anguloAtual = graus;
+            
+            // Sincroniza os displays da UI
+            document.getElementById('slider-angulo').value = graus;
+            document.getElementById('display-angulo').innerText = Math.round(graus) + "°";
+
+            // Rotaciona o grupo do triângulo exatamente para acompanhar o final do cone de revolução
+            let radianosRotacao = (graus * Math.PI) / 180;
+            grupoTriangulo.rotation.y = -radianosRotacao; // Negativo para acompanhar a inversão de escala da malha
+
+            // Atualiza o rastro tridimensional
+            renderizarConeParcial(graus);
+        }
+
+        // Liga ou desliga o looping automático
+        function alternarAutoPlay() {
+            const btn = document.getElementById('btn-play');
+            animacaoAutomatica = !animacaoAutomatica;
+
+            if (animacaoAutomatica) {
+                btn.innerText = "Pausar Rotação";
+                btn.classList.add('ativo');
+                if (anguloAtual >= 360) anguloAtual = 0; // Reinicia se já tiver completado a volta inteira
+            } else {
+                btn.innerText = "Rotação Automática";
+                btn.classList.remove('ativo');
+            }
+        }
+
+        function onWindowResize() { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+        }
+        
+        function animate() { 
+            requestAnimationFrame(animate); 
+            controls.update(); 
+
+            // Gerencia o incremento angular caso o modo automático esteja ativado
+            if (animacaoAutomatica) {
+                anguloAtual += 1.2; // Velocidade da rotação automática
+                if (anguloAtual >= 360) {
+                    anguloAtual = 360;
+                    atualizarCena(anguloAtual);
+                    alternarAutoPlay(); // Pausa ao atingir a rotação completa de 360 graus
+                } else {
+                    atualizarCena(anguloAtual);
+                }
+            }
+
+            renderer.render(scene, camera); 
+        }
+    </script>
+</body>
+</html>

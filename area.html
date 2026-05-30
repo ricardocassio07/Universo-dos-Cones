@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cone 3D - Áreas do Sólido</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body, html { 
+            width: 100%;
+            height: 100%;
+            background-color: #121214; 
+            color: #ffffff; 
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* O visualizador 3D vira o plano de fundo total */
+        .visualizador-master {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Container dos textos na parte inferior e centralizada */
+        .container-inferior {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+            overflow-x: auto;
+            padding: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #3f3f46 transparent;
+        }
+
+        /* Título fixo no topo centralizado para balancear o design */
+        .cabecalho-topo {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(18, 18, 20, 0.6);
+            padding: 10px 25px;
+            border-radius: 30px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(63, 63, 70, 0.3);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: #00ff88;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Estilização das Caixas de Texto / Cartões Interativos */
+        .card-formula {
+            flex: 1;
+            min-width: 280px; 
+            background: rgba(26, 26, 30, 0.85);
+            border: 1px solid rgba(63, 63, 70, 0.6);
+            border-radius: 14px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            cursor: pointer; /* Cursor de clique indicando interatividade */
+            transition: border-color 0.3s, transform 0.2s, background-color 0.3s;
+            user-select: none; /* Evita seleção acidental de texto ao clicar rápido */
+        }
+
+        /* Estilos de hover específicos para indicar qual painel controla o que */
+        .card-formula[data-target="base"]:hover {
+            border-color: #0088ff;
+            background: rgba(0, 136, 255, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .card-formula[data-target="lateral"]:hover {
+            border-color: #ff0066;
+            background: rgba(255, 0, 102, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .card-formula[data-target="total"]:hover {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+            transform: translateY(-5px);
+        }
+
+        /* Estado ativo (quando o painel está mantendo a peça levantada) */
+        .card-formula.active[data-target="base"] { border-color: #0088ff; background: rgba(0, 136, 255, 0.15); }
+        .card-formula.active[data-target="lateral"] { border-color: #ff0066; background: rgba(255, 0, 102, 0.15); }
+        .card-formula.active[data-target="total"] { border-color: #00ff88; background: rgba(0, 255, 136, 0.15); }
+
+        .card-formula h3 {
+            font-size: 1rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-formula h3 .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .badge-base { background: rgba(0, 136, 255, 0.2); color: #0088ff; }
+        .badge-lateral { background: rgba(255, 0, 102, 0.2); color: #ff0066; }
+        .badge-total { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+
+        .equacao {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 10px 0;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 1px;
+        }
+
+        .card-formula p {
+            font-size: 0.85rem;
+            color: #d4d4d8;
+            line-height: 1.5;
+            pointer-events: none; /* Garante que o clique registre no card pai */
+        }
+
+        /* Legenda descritiva no topo lateral */
+        .legenda-3d {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(26, 26, 30, 0.8);
+            border: 1px solid rgba(63, 63, 70, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(8px);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .item-legenda {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cor-quadrado {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND: MODELAGEM INTERATIVA 3D -->
+    <div class="visualizador-master">
+        <div id="canvas-container"></div>
+    </div>
+
+    <!-- CAIXAS DE TEXTO / PAINÉIS INTERATIVOS DE CONTROLE -->
+    <div class="container-inferior">
+        
+        <!-- Área da Base -->
+        <div class="card-formula" data-target="base">
+            <h3>Área da Base <span class="badge badge-base">A<sub>b</sub></span></h3>
+            <div class="equacao" style="color: #0088ff;">A<sub>b</sub> = π · r²</div>
+            <p>Clique para elevar a base do cone (o círculo perfeito). O cálculo depende apenas do raio elevado ao quadrado multiplicado por Pi.</p>
+        </div>
+
+        <!-- Área Lateral -->
+        <div class="card-formula" data-target="lateral">
+            <h3>Área Lateral <span class="badge badge-lateral">A<sub>l</sub></span></h3>
+            <div class="equacao" style="color: #ff0066;">A<sub>l</sub> = π · r · g</div>
+            <p>Clique para elevar a lateral planificada (o setor circular). É o produto direto entre o raio da base, a geratriz (g) e Pi.</p>
+        </div>
+
+        <!-- Área Total -->
+        <div class="card-formula" data-target="total">
+            <h3>Área Total <span class="badge badge-total">A<sub>t</sub></span></h3>
+            <div class="equacao" style="color: #00ff88;">A<sub>t</sub> = A<sub>b</sub> + A<sub>l</sub></div>
+            <p>Clique para elevar ambas as superfícies simultaneamente. A área total é obtida somando a região da base com a área lateral esticada.</p>
+        </div>
+
+    </div>
+
+    <!-- SCRIPTS DO THREE.JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let meshBase, meshLateral, pontoVertice;
+
+        const r = 1.8; 
+        const g = 4.0;
+
+        // Variáveis de controle de altura (eixo Y)
+        let targetYBase = 0;
+        let targetYLateral = 0;
+        const alturaElevacao = 0.6; // Distância vertical do salto da animação
+
+        init();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x121214);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 9.0, 7.0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+            const luzDirecional = new THREE.DirectionalLight(0xffffff, 0.45);
+            luzDirecional.position.set(3, 10, 3);
+            scene.add(luzDirecional);
+
+            const grid = new THREE.GridHelper(20, 20, 0x27272a, 0x1e1e22);
+            grid.position.y = -0.01;
+            scene.add(grid);
+
+            montarPlanificacao();
+
+            // Ativa o mapeamento de cliques nos painéis textuais inferiores
+            configurarCliquesPaineis();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function montarPlanificacao() {
+            // Círculo da Base
+            const geoBase = new THREE.CircleGeometry(r, 64);
+            const matBase = new THREE.MeshStandardMaterial({ 
+                color: 0x0088ff, 
+                side: THREE.DoubleSide,
+                roughness: 0.4
+            });
+            meshBase = new THREE.Mesh(geoBase, matBase);
+            meshBase.rotation.x = -Math.PI / 2;
+            meshBase.position.set(0, 0, r + 1.2); 
+            scene.add(meshBase);
+
+            // Setor Circular (Área Lateral)
+            const anguloCentralRadianos = (r / g) * (2 * Math.PI);
+            const geoLateral = new THREE.CircleGeometry(g, 64, -anguloCentralRadianos/2, anguloCentralRadianos);
+            const matLateral = new THREE.MeshStandardMaterial({ 
+                color: 0xff0066, 
+                side: THREE.DoubleSide,
+                roughness: 0.4
+            });
+            meshLateral = new THREE.Mesh(geoLateral, matLateral);
+            meshLateral.rotation.x = -Math.PI / 2;
+            meshLateral.position.set(0, 0, -g * 0.4 - 1.0); 
+            scene.add(meshLateral);
+
+            // Vértice associado à estrutura lateral
+            const geoVertice = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0)]);
+            const matVertice = new THREE.PointsMaterial({color: 0xffffff, size: 0.15});
+            pontoVertice = new THREE.Points(geoVertice, matVertice);
+            pontoVertice.position.set(0, 0.02, 0); 
+            meshLateral.add(pontoVertice);
+        }
+
+        // NOVA LOGICA: Intercepta o clique nos cards e altera as alturas alvo do 3D
+        function configurarCliquesPaineis() {
+            const cards = document.querySelectorAll('.card-formula');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const target = card.getAttribute('data-target');
+                    
+                    // Se o painel clicado já estava ativo, desativa tudo (retorna ao chão)
+                    if (card.classList.contains('active')) {
+                        card.classList.remove('active');
+                        targetYBase = 0;
+                        targetYLateral = 0;
+                    } else {
+                        // Limpa o estado ativo de todos os cartões para atualizar o design visual
+                        cards.forEach(c => c.classList.remove('active'));
+                        card.classList.add('active');
+
+                        // Executa a regra matemática de movimentação baseada no painel escolhido
+                        if (target === 'base') {
+                            targetYBase = alturaElevacao;
+                            targetYLateral = 0;
+                        } else if (target === 'lateral') {
+                            targetYBase = 0;
+                            targetYLateral = alturaElevacao;
+                        } else if (target === 'total') {
+                            targetYBase = alturaElevacao;
+                            targetYLateral = alturaElevacao;
+                        }
+                    }
+                });
+            });
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Suavização do deslocamento vertical através de interpolação linear (lerp)
+            meshBase.position.y += (targetYBase - meshBase.position.y) * 0.1;
+            meshLateral.position.y += (targetYLateral - meshLateral.position.y) * 0.1;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

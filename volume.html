@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cone 3D - Cálculo de Volume</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body, html { 
+            width: 100%;
+            height: 100%;
+            background-color: #121214; 
+            color: #ffffff; 
+            overflow: hidden;
+        }
+
+        /* O Canvas agora é o plano de fundo total da aplicação */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Interface principal sobreposta ao 3D */
+        .dashboard {
+            position: relative;
+            display: flex;
+            flex-direction: row; 
+            justify-content: flex-end; /* Alinha o painel de controles à direita */
+            align-items: flex-start; /* Alinha ao topo para respeitar o deslocamento para baixo */
+            width: 100%;
+            height: 100%; 
+            padding: 0 40px;
+            pointer-events: none; /* Permite interagir com o 3D por trás das áreas vazias */
+            z-index: 2;
+        }
+
+        /* Painel de Controles e Fórmulas (Lado Direito) */
+        .painel-esquerdo {
+            flex: none;
+            width: 100%;
+            max-width: 450px; 
+            min-width: 320px;
+            position: relative;
+            top: 100px; 
+            height: calc(100% - 190px); 
+            background: rgba(26, 26, 30, 0.9);
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column; 
+            gap: 20px;
+            overflow-y: auto; 
+            backdrop-filter: blur(8px);
+            pointer-events: auto; /* Reativa cliques e interações dentro do painel */
+        }
+
+        .coluna-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .secao-formulas {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .grid-formulas {
+            display: flex;
+            gap: 12px;
+        }
+
+        .card-sub {
+            flex: 1;
+            background: #222226;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card-sub.border-blue { border-color: #0088ff; }
+
+        .card-sub h3 {
+            font-size: 0.9rem;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .descricao {
+            font-size: 0.8rem;
+            color: #a1a1aa;
+            line-height: 1.4;
+        }
+
+        .formula-pequena {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .card-volume {
+            background: rgba(0, 255, 136, 0.03);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .card-volume h2 {
+            font-size: 1rem;
+            color: #00ff88;
+            margin-bottom: 6px;
+        }
+
+        .equacao-principal {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00ff88;
+        }
+
+        .controle-grupo {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #222226;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #27272a;
+        }
+
+        .controle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .controle-header label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Estilização do Input Numérico Digitável */
+        .input-container {
+            display: flex;
+            align-items: center;
+            background: #121214;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            padding: 2px 8px;
+        }
+
+        .input-container input[type="number"] {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #00ff88;
+            font-family: monospace;
+            font-size: 0.95rem;
+            width: 50px;
+            text-align: right;
+        }
+
+        /* Remove as setas padrão do input number */
+        .input-container input[type="number"]::-webkit-inner-spin-button,
+        .input-container input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .input-container span {
+            color: #71717a;
+            font-size: 0.85rem;
+            margin-left: 4px;
+            font-family: monospace;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: #3f3f46;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider-limites {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #71717a;
+        }
+
+        .resultado-container {
+            background: #121214;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            margin-top: auto; 
+        }
+
+        .resultado-texto {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cenário 3D ocupando o fundo de forma livre -->
+    <div id="canvas-container"></div>
+
+    <!-- Interface com Painel de Controles posicionado à direita -->
+    <div class="dashboard">
+        <div class="painel-esquerdo">
+            <div class="secao-formulas">
+                <div class="grid-formulas">
+                    <div class="card-sub border-blue">
+                        <h3>Área da Base (A<sub>b</sub>)</h3>
+                        <div class="formula-pequena" style="color: #0088ff;">A<sub>b</sub> = π · r²</div>
+                    </div>
+                    <div class="card-sub" style="border-color: #ff9900;">
+                        <h3>Altura (h)</h3>
+                        <p class="descricao">Distância do vértice à base.</p>
+                    </div>
+                </div>
+
+                <div class="card-volume">
+                    <h2>V = 1/3 · A<sub>b</sub> · h</h2>
+                    <div class="equacao-principal">V = 1/3 · π · r² · h</div>
+                </div>
+            </div>
+
+            <!-- Controle do Raio -->
+            <div class="controle-grupo">
+                <div class="controle-header">
+                    <label>Raio (r)</label>
+                    <div class="input-container">
+                        <input type="number" id="txt-raio" min="0.5" max="10.0" step="0.1" value="2.5">
+                        <span>m</span>
+                    </div>
+                </div>
+                <input type="range" id="slide-raio" class="slider" min="0.5" max="10.0" step="0.1" value="2.5">
+                <div class="slider-limites">
+                    <span>0.5 m</span>
+                    <span>10.0 m</span>
+                </div>
+            </div>
+
+            <!-- Controle da Altura -->
+            <div class="controle-grupo">
+                <div class="controle-header">
+                    <label>Altura (h)</label>
+                    <div class="input-container" style="border-color: #ff9900;">
+                        <input type="number" id="txt-altura" min="1.0" max="20.0" step="0.1" value="5.0" style="color: #ff9900;">
+                        <span>m</span>
+                    </div>
+                </div>
+                <input type="range" id="slide-altura" class="slider" min="1.0" max="20.0" step="0.1" value="5.0">
+                <div class="slider-limites">
+                    <span>1.0 m</span>
+                    <span>20.0 m</span>
+                </div>
+            </div>
+
+            <div class="resultado-container">
+                <div class="resultado-texto">
+                    Volume (V) ≈ <span id="txt-volume" style="color: #00ff88;">0.00</span> m³
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS IMPORTADOS (THREE.JS) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let coneMesh, baseMesh, linhaAltura;
+
+        const slideRaio = document.getElementById('slide-raio');
+        const slideAltura = document.getElementById('slide-altura');
+        const txtRaio = document.getElementById('txt-raio');
+        const txtAltura = document.getElementById('txt-altura');
+        const txtVolume = document.getElementById('txt-volume');
+
+        init();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x121214);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(12, 12, 18); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 3, 0); 
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const luzDirecional = new THREE.DirectionalLight(0xffffff, 0.5);
+            luzDirecional.position.set(10, 25, 10);
+            scene.add(luzDirecional);
+
+            const grid = new THREE.GridHelper(40, 40, 0x27272a, 0x1e1e22); 
+            scene.add(grid);
+
+            // Ouvintes para os Sliders
+            slideRaio.addEventListener('input', (e) => {
+                txtRaio.value = e.target.value;
+                atualizarCenario();
+            });
+
+            slideAltura.addEventListener('input', (e) => {
+                txtAltura.value = e.target.value;
+                atualizarCenario();
+            });
+
+            // Ouvintes para as Caixas de Texto Numéricas
+            txtRaio.addEventListener('input', (e) => {
+                let val = parseFloat(e.target.value);
+                if (isNaN(val)) return;
+                if (val < 0.5) val = 0.5;
+                if (val > 10.0) val = 10.0;
+                slideRaio.value = val;
+                atualizarCenario();
+            });
+
+            txtAltura.addEventListener('input', (e) => {
+                let val = parseFloat(e.target.value);
+                if (isNaN(val)) return;
+                if (val < 1.0) val = 1.0;
+                if (val > 20.0) val = 20.0;
+                slideAltura.value = val;
+                atualizarCenario();
+            });
+
+            // Forçar correção de limites vazios quando o usuário desfocar do campo
+            txtRaio.addEventListener('blur', (e) => {
+                if (e.target.value === "") e.target.value = slideRaio.value;
+            });
+            txtAltura.addEventListener('blur', (e) => {
+                if (e.target.value === "") e.target.value = slideAltura.value;
+            });
+
+            gerarEstruturaCone(parseFloat(slideRaio.value), parseFloat(slideAltura.value));
+            calcularMatematica();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function gerarEstruturaCone(raio, altura) {
+            if (coneMesh) scene.remove(coneMesh);
+            if (baseMesh) scene.remove(baseMesh);
+            if (linhaAltura) scene.remove(linhaAltura);
+
+            const geoCone = new THREE.ConeGeometry(raio, altura, 64, 1, true);
+            const matCone = new THREE.MeshStandardMaterial({
+                color: 0xff0066,
+                transparent: true,
+                opacity: 0.55,
+                side: THREE.DoubleSide,
+                roughness: 0.3
+            });
+            coneMesh = new THREE.Mesh(geoCone, matCone);
+            coneMesh.position.y = altura / 2; 
+            scene.add(coneMesh);
+
+            const geoBase = new THREE.CircleGeometry(raio, 64);
+            const matBase = new THREE.MeshStandardMaterial({
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            baseMesh = new THREE.Mesh(geoBase, matBase);
+            baseMesh.rotation.x = -Math.PI / 2; 
+            baseMesh.position.y = 0.01; 
+            scene.add(baseMesh);
+
+            const pontosLinha = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, altura, 0)
+            ];
+            const geoLinha = new THREE.BufferGeometry().setFromPoints(pontosLinha);
+            const matLinha = new THREE.LineBasicMaterial({ color: 0xff9900, linewidth: 3 });
+            linhaAltura = new THREE.Line(geoLinha, matLinha);
+            scene.add(linhaAltura);
+        }
+
+        function calcularMatematica() {
+            const raio = parseFloat(slideRaio.value) || 0.5;
+            const altura = parseFloat(slideAltura.value) || 1.0;
+            const volume = (1/3) * Math.PI * Math.pow(raio, 2) * altura;
+
+            txtVolume.innerText = volume.toFixed(2);
+        }
+
+        function atualizarCenario() {
+            const raio = parseFloat(slideRaio.value) || 0.5;
+            const altura = parseFloat(slideAltura.value) || 1.0;
+            
+            gerarEstruturaCone(raio, altura);
+            calcularMatematica();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universo dos Cones em 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #121214;
+            color: #fff;
+        }
+
+        /* Container do iframe que ocupa todo o fundo */
+        #cenario-frame-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #121214;
+        }
+
+        /* Interface de Navegação Superior (Sobreposta ao iframe) */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 30px 30px 30px;
+            z-index: 10;
+        }
+
+        /* Mantém a orientação vertical para empilhar a barra de títulos em cima dos botões */
+        header {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            background: linear-gradient(to bottom, rgba(18, 18, 20, 0.95) 75%, rgba(18, 18, 20, 0));
+            padding: 15px 20px 25px 20px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        /* Alinhamento: Título à esquerda, Nome e Logo à direita */
+        .header-titles {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            padding: 0 10px;
+        }
+
+        /* Bloco da Esquerda (Texto Principal) */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-align: left;
+        }
+
+        /* MODIFICADO: Diminuída a largura e altura do logo de 50px para 35px */
+        .header-logo {
+            width: 35px;         
+            height: 35px;        
+            object-fit: contain;
+            border-radius: 4px;  
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: #4edeb3;
+            text-shadow: 0 2px 10px rgba(78, 222, 179, 0.3);
+            margin-bottom: 3px;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        header p {
+            color: #a8dadc;
+            font-size: 0.95rem;
+        }
+
+        /* Bloco da Direita: Alinhado verticalmente e com espaçamento entre elementos */
+        .header-right {
+            display: flex;
+            align-items: center; 
+            gap: 12px;           
+            text-align: right;
+        }
+
+        /* MODIFICADO: Diminuído o tamanho da fonte de 1.1rem para 0.9rem */
+        .prof-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #ffffff;      
+            text-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            white-space: nowrap;
+        }
+
+        .nav-btn:hover {
+            background: rgba(78, 222, 179, 0.2);
+            color: #fff;
+            border-color: #4edeb3;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: #4edeb3;
+            color: #121214;
+            border-color: #4edeb3;
+            box-shadow: 0 4px 15px rgba(78, 222, 179, 0.4);
+        }
+
+        /* Painel Informativo Lateral Esquerdo */
+        #info-panel {
+            pointer-events: auto;
+            align-self: flex-start;
+            background: rgba(18, 18, 20, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 350px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-top: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        #info-panel h2 {
+            color: #4edeb3;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid rgba(78, 222, 179, 0.2);
+            padding-bottom: 8px;
+        }
+
+        #info-panel p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .highlight-list {
+            list-style: none;
+        }
+
+        .highlight-list li {
+            margin-bottom: 10px;
+            padding-left: 15px;
+            position: relative;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .highlight-list li::before {
+            content: "•";
+            color: #72efdd;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+            background: linear-gradient(to top, rgba(18, 18, 20, 0.8), rgba(18, 18, 20, 0));
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cenario-frame-container">
+        <iframe id="conteudo-frame" src="revolucao.html" name="conteudo-frame"></iframe>
+    </div>
+
+    <div id="ui-container">
+        <header>
+            <div class="header-titles">
+                <div class="header-left">
+                    <div>
+                        <h1>CONES</h1>
+                        <p>Explorando as propriedades desta figura geométrica</p>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <span class="prof-name">Prof. Cássio Ricardo Fernandes de Araujo</span>
+                    <img src="Logo - MatMov.png" alt="Logo" class="header-logo">
+                </div>
+            </div>
+            
+            <nav>
+                <button class="nav-btn" onclick="navegarAba('revolucao.html', 'revolucao', this)">Sólido de Revolução</button>
+                <button class="nav-btn active" onclick="navegarAba('elementos.html', 'partes', this)">Elementos do Cone</button>
+                <button class="nav-btn" onclick="navegarAba('planificacao.html', 'planificacao', this)">Planificação</button>
+                <button class="nav-btn" onclick="navegarAba('area.html', 'area', this)">Área</button>
+                <button class="nav-btn" onclick="navegarAba('volume.html', 'volume', this)">Volume</button>
+                <button class="nav-btn" onclick="navegarAba('tronco.html', 'tronco', this)">Tronco de Cone</button>
+                <button class="nav-btn" onclick="navegarAba('tipos.html', 'tipos', this)">Reto x Oblíquo</button>
+                <button class="nav-btn" onclick="navegarAba('tipos.html', 'tipos', this)">Caso Especial</button>
+                <button class="nav-btn" onclick="navegarAba('tipos.html', 'tipos', this)">Relação com Outras Figuras</button>
+            </nav>
+        </header>
+
+        <main id="info-panel">
+            <h2 id="panel-title">Elementos Nucleares</h2>
+            <div id="panel-content">
+            </div>
+        </main>
+
+        <footer>
+            <p>* Mova a câmera livremente.</p>
+        </footer>
+    </div>
+
+    <script>
+        const dadosPainel = {
+            revolucao: {
+                title: "Sólido de Revolução",
+                text: "O cone reto é chamado de sólido de revolução porque ele é gerado a partir da rotação completa (de 360°) de uma figura plana em torno de um eixo fixo. Ao girarmos um triângulo retângulo usando um de seus catetos como apoio, o espaço percorrido por ele molda a forma tridimensional do cone.",
+                highlights: [
+                    "<strong>Eixo de Rotação:</strong> A reta de apoio vertical que permanece estática. Ela coincide exatamente com a altura (h) do cone.",
+                    "<strong>Triângulo Gerador:</strong> O triângulo retângulo plano que gira. O cateto da base define o raio (r) e a hipotenusa define a lateral.",
+                    "<strong>Geratriz (g):</strong> A hipotenusa do triângulo gerador. Ela recebe esse nome porque é a linha que 'gera' toda a superfície lateral do sólido conforme rotaciona."
+                ]
+            },
+            partes: {
+                title: "Características",
+                text: "O cone reto possui componentes fundamentais que definem suas propriedades espaciais e cálculos de área ou volume.",
+                highlights: [
+                    "<strong>Altura (h):</strong> A reta perpendicular que vai do centro da base ao vértice superior.",
+                    "<strong>Raio (r):</strong> A distância do centro da base redonda até a sua extremidade.",
+                    "<strong>Geratriz (g):</strong> A hipotenusa formada pelo raio e altura. Linha que molda a lateral do cone."
+                ]
+            },
+            planificacao: {
+                title: "Planificação Real",
+                text: "Utilize o controle deslizante no ambiente 3D para desmanchar a figura. Veja a base se separar como um círculo plano e a face lateral se abrir em um setor circular.",
+                highlights: [
+                    "O raio do setor circular (meia-lua) gerado é exatamente igual ao comprimento da <strong>geratriz</strong>.",
+                    "O arco dessa face lateral tem o mesmo comprimento perimétrico da borda da base circular (2·π·r)."
+                ]
+            },
+            volume: {
+                title: "Volume",
+                text: "O volume do cone corresponde a um terço do volume de um cilindro de mesmo raio e altura. Altere os valores abaixo para observar as mudanças no sólido tridimensional.",
+                highlights: [
+                    "<strong>Altura (h):</strong> A reta perpendicular que vai do centro da base ao vértice superior.",
+                    "<strong>Raio (r):</strong> A distância do centro da base redonda até a sua extremidade.",
+                ]
+            },
+            tronco: {
+                title: "Tronco de Cone",
+                text: "Formado através de uma seção transversal por um plano paralelo à base, gerando uma peça geométrica com dois raios distintos.",
+                highlights: [
+                    "Possui uma Base Maior (inferior) and uma Base Menor (superior) perfeitamente paralelas.",
+                    "A silhueta lateral recortada é largamente utilizada na engenharia mecânica e design de utensílios cotidianos."
+                ]
+            }
+        };
+
+        function navegarAba(urlPagina, chaveDados, botaoOriginal) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            botaoOriginal.classList.add('active');
+
+            document.getElementById('conteudo-frame').src = urlPagina;
+
+            const painel = document.getElementById('info-panel');
+
+            if (chaveDados === 'area') {
+                painel.style.display = 'none';
+                return; 
+            } else {
+                painel.style.display = 'block'; 
+            }
+
+            const dados = dadosPainel[chaveDados];
+            document.getElementById('panel-title').innerText = dados.title;
+            
+            let htmlGerado = `<p>${dados.text}</p><ul class="highlight-list">`;
+            dados.highlights.forEach(item => htmlGerado += `<li>${item}</li>`);
+            htmlGerado += `</ul>`;
+            
+            document.getElementById('panel-content').innerHTML = htmlGerado;
+        }
+
+        window.onload = () => {
+            const botoes = document.querySelectorAll('.nav-btn');
+            if(botoes.length > 0) {
+                navegarAba('revolucao.html', 'revolucao', botoes[0]);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometria Espacial: Cilindro vs Cone</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body, html { 
+            width: 100%;
+            height: 100%;
+            background-color: #0c0c0e; 
+            color: #ffffff; 
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Canvas 3D de fundo */
+        .visualizador-master {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Interface lateral esquerda (Fórmulas e controle) */
+        .painel-lateral {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            width: 360px;
+            background: rgba(20, 20, 25, 0.85);
+            border: 1px solid rgba(63, 63, 70, 0.5);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: #00ff88;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .condicoes {
+            font-size: 0.9rem;
+            color: #a1a1aa;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+            border-left: 3px solid #00ff88;
+            border-radius: 4px;
+        }
+
+        .bloco-formula {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(63, 63, 70, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .titulo-corpo {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .formula {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* Botão de Animação Interativa */
+        .btn-acao {
+            background: #00ff88;
+            color: #0c0c0e;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-acao:hover {
+            background: #00e67a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn-acao:disabled {
+            background: #27272a;
+            color: #71717a;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Contador de passos */
+        .contador-passos {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        /* Legenda de cores flutuante no topo */
+        .cabecalho-topo {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(12, 12, 14, 0.7);
+            padding: 10px 25px;
+            border-radius: 30px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(63, 63, 70, 0.3);
+            z-index: 10;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 20px;
+            pointer-events: none;
+        }
+
+        .item-legenda {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cor-indicador {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Container para os textos flutuantes da régua em 2D sobreposta */
+        .etiquetas-regua {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .txt-marcador {
+            position: absolute;
+            color: #00ff88;
+            font-family: monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            background: rgba(12, 12, 14, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            transform: translate(15px, -50%);
+            white-space: nowrap;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cabecalho-topo">
+        <div class="item-legenda">
+            <div class="cor-indicador" style="background: rgba(0, 162, 255, 0.5);"></div>
+            <span>Água / Volume</span>
+        </div>
+        <div class="item-legenda">
+            <div class="cor-indicador" style="background: #ffffff; height: 2px; width: 15px;"></div>
+            <span>Mesmo Raio e Altura</span>
+        </div>
+    </div>
+
+    <div class="painel-lateral">
+        <h1>Cone vs Cilindro</h1>
+        
+        <div class="condicoes">
+            Se possuírem o <strong>mesmo raio (r)</strong> e a <strong>mesma altura (h)</strong>...
+        </div>
+
+        <div class="bloco-formula">
+            <div class="titulo-corpo" style="color: #ff9d00;">Cilindro</div>
+            <div class="formula" style="color: #ff9d00;">V = π · r² · h</div>
+        </div>
+
+        <div class="bloco-formula">
+            <div class="titulo-corpo" style="color: #e100ff;">Cone</div>
+            <div class="formula" style="color: #e100ff;">V = 1/3 · π · r² · h</div>
+        </div>
+
+        <button class="btn-acao" id="btn-animar">Encher Cone</button>
+        <div class="contador-passos" id="texto-status">O cilindro está vazio.</div>
+    </div>
+
+    <div class="etiquetas-regua" id="container-etiquetas">
+        <div class="txt-marcador" id="lbl-marcador-3">1/1 (Cheio)</div>
+        <div class="txt-marcador" id="lbl-marcador-2">2/3</div>
+        <div class="txt-marcador" id="lbl-marcador-1">1/3</div>
+        <div class="txt-marcador" id="lbl-marcador-0">0 (Vazio)</div>
+    </div>
+
+    <div class="visualizador-master">
+        <div id="canvas-container"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let coneAgua, cilindroAgua;
+        let estadoAnimacao = "vazio"; 
+        let viagensEfetuadas = 0;
+        
+        const raio = 1.4;
+        const altura = 3.5;
+        const segmentos = 64;
+
+        // Âncoras 3D para posicionar as etiquetas 2D da fita métrica
+        let pontosMarcadores3D = [];
+        const RefsMarcadoresHTML = [
+            document.getElementById('lbl-marcador-0'),
+            document.getElementById('lbl-marcador-1'),
+            document.getElementById('lbl-marcador-2'),
+            document.getElementById('lbl-marcador-3')
+        ];
+
+        const btnAcao = document.getElementById('btn-animar');
+        const textoStatus = document.getElementById('texto-status');
+
+        init();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c0e);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 4, 11);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, altura / 2, 0);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const luzDir1 = new THREE.DirectionalLight(0xffffff, 0.6);
+            luzDir1.position.set(5, 10, 7);
+            scene.add(luzDir1);
+            const luzDir2 = new THREE.DirectionalLight(0x00ff88, 0.2);
+            luzDir2.position.set(-5, 5, -5);
+            scene.add(luzDir2);
+
+            const grid = new THREE.GridHelper(20, 20, 0x1e1e24, 0x141418);
+            scene.add(grid);
+
+            construirCenario();
+
+            btnAcao.addEventListener('click', gerenciarFluxo);
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function construirCenario() {
+            const matVidro = new THREE.MeshStandardMaterial({
+                color: 0xffffff, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.15, side: THREE.DoubleSide
+            });
+
+            const matAgua = new THREE.MeshStandardMaterial({
+                color: 0x00a2ff, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.55, side: THREE.DoubleSide
+            });
+
+            const matContorno = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+
+            // ================= CONE (X = -2.5) =================
+            const grupoCone = new THREE.Group();
+            grupoCone.position.set(-2.5, 0, 0);
+
+            const geoCone = new THREE.ConeGeometry(raio, altura, segmentos, 1, true);
+            const meshCone = new THREE.Mesh(geoCone, matVidro);
+            meshCone.position.y = altura / 2;
+            grupoCone.add(meshCone);
+
+            const contornoCone = new THREE.LineSegments(new THREE.EdgesGeometry(geoCone), matContorno);
+            contornoCone.position.y = altura / 2;
+            grupoCone.add(contornoCone);
+
+            const geoAguaCone = new THREE.ConeGeometry(raio, altura, segmentos, 1, false);
+            coneAgua = new THREE.Mesh(geoAguaCone, matAgua);
+            coneAgua.position.y = -altura/2;
+            const pivorCone = new THREE.Group();
+            pivorCone.position.y = altura;
+            pivorCone.scale.set(1, 0.001, 1);
+            pivorCone.add(coneAgua);
+            grupoCone.add(pivorCone);
+
+            scene.add(grupoCone);
+
+            // ================= CILINDRO + FITA MÉTRICA (X = 2.5) =================
+            const grupoCilindro = new THREE.Group();
+            grupoCilindro.position.set(2.5, 0, 0);
+
+            const geoCilindro = new THREE.CylinderGeometry(raio, raio, altura, segmentos, 1, true);
+            const meshCilindro = new THREE.Mesh(geoCilindro, matVidro);
+            meshCilindro.position.y = altura / 2;
+            grupoCilindro.add(meshCilindro);
+
+            const contornoCilindro = new THREE.LineSegments(new THREE.EdgesGeometry(geoCilindro), matContorno);
+            contornoCilindro.position.y = altura / 2;
+            grupoCilindro.add(contornoCilindro);
+
+            const geoAguaCilindro = new THREE.CylinderGeometry(raio, raio, altura, segmentos, 1, false);
+            cilindroAgua = new THREE.Mesh(geoAguaCilindro, matAgua);
+            cilindroAgua.position.y = altura / 2;
+            
+            const pivorCilindro = new THREE.Group();
+            pivorCilindro.position.y = 0;
+            pivorCilindro.scale.set(1, 0.001, 1);
+            pivorCilindro.add(cilindroAgua);
+            grupoCilindro.add(pivorCilindro);
+
+            // --- CONSTRUÇÃO DA FITA MÉTRICA (TRAÇOS GRADUADOS) ---
+            const matLinhaRegua = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+            const fracoes = [0, 1/3, 2/3, 1];
+
+            fracoes.forEach((fracao, index) => {
+                const alturaMarcador = altura * fracao;
+                
+                // Pequena caixinha simulando o traço da fita métrica na borda frontal do cilindro
+                const geoTraco = new THREE.BoxGeometry(0.3, 0.03, 0.05);
+                const meshTraco = new THREE.Mesh(geoTraco, matLinhaRegua);
+                // Posicionado logo na tangente externa do cilindro (Z = raio)
+                meshTraco.position.set(raio + 0.15, alturaMarcador, 0);
+                grupoCilindro.add(meshTraco);
+
+                // Criar um ponto de referência invisível para rastrear a coordenada e fixar a etiqueta HTML na tela
+                const ancora3D = new THREE.Object3D();
+                ancora3D.position.set(raio + 0.3, alturaMarcador, 0);
+                grupoCilindro.add(ancora3D);
+                pontosMarcadores3D.push(ancora3D);
+            });
+
+            scene.add(grupoCilindro);
+
+            grupoCone.pivoAgua = pivorCone;
+            grupoCilindro.pivoAgua = pivorCilindro;
+            scene.grupoCone = grupoCone;
+            scene.grupoCilindro = grupoCilindro;
+        }
+
+        function gerenciarFluxo() {
+            if (estadoAnimacao === "vazio" || estadoAnimacao === "pronto") {
+                if(viagensEfetuadas >= 3) {
+                    viagensEfetuadas = 0;
+                    scene.grupoCilindro.pivoAgua.scale.y = 0.001;
+                }
+                estadoAnimacao = "enche_cone";
+                btnAcao.disabled = true;
+                textoStatus.innerText = "Enchendo o cone com água...";
+            } else if (estadoAnimacao === "cheio_cone") {
+                estadoAnimacao = "derramando";
+                btnAcao.disabled = true;
+                viagensEfetuadas++;
+                textoStatus.innerText = `Despejando no cilindro... (Viagem ${viagensEfetuadas}/3)`;
+            }
+        }
+
+        // Converte as coordenadas do espaço 3D para pixels 2D da tela do navegador
+        function atualizarPosicaoEtiquetasHTML() {
+            const larguraMetade = window.innerWidth / 2;
+            const alturaMetade = window.innerHeight / 2;
+            const vetorPosicao = new THREE.Vector3();
+
+            pontosMarcadores3D.forEach((ancora, index) => {
+                ancora.getWorldPosition(vetorPosicao);
+                vetorPosicao.project(camera);
+
+                // Verifica se o marcador está atrás da câmera
+                if(vetorPosicao.z > 1) {
+                    RefsMarcadoresHTML[index].style.display = 'none';
+                    return;
+                } else {
+                    RefsMarcadoresHTML[index].style.display = 'block';
+                }
+
+                const x2D = (vetorPosicao.x * larguraMetade) + larguraMetade;
+                const y2D = -(vetorPosicao.y * alturaMetade) + alturaMetade;
+
+                RefsMarcadoresHTML[index].style.left = `${x2D}px`;
+                RefsMarcadoresHTML[index].style.top = `${y2D}px`;
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const pivoAguaCone = scene.grupoCone.pivoAgua;
+            const pivoAguaCilindro = scene.grupoCilindro.pivoAgua;
+
+            if (estadoAnimacao === "enche_cone") {
+                pivoAguaCone.scale.y += 0.015;
+                if (pivoAguaCone.scale.y >= 1) {
+                    pivoAguaCone.scale.y = 1;
+                    estadoAnimacao = "cheio_cone";
+                    btnAcao.disabled = false;
+                    btnAcao.innerText = "Despejar no Cilindro";
+                    textoStatus.innerText = "Cone totalmente cheio. Pronto para despejar!";
+                }
+            } 
+            else if (estadoAnimacao === "derramando") {
+                pivoAguaCone.scale.y -= 0.02 * (1.5); 
+                
+                const alvoCilindroY = viagensEfetuadas * 0.3333;
+                pivoAguaCilindro.scale.y += 0.02 * (0.3333);
+
+                if (pivoAguaCone.scale.y <= 0.001) {
+                    pivoAguaCone.scale.y = 0.001;
+                    pivoAguaCilindro.scale.y = alvoCilindroY; 
+                    
+                    estadoAnimacao = "pronto";
+                    btnAcao.disabled = false;
+
+                    if (viagensEfetuadas < 3) {
+                        btnAcao.innerText = "Encher Cone Novamente";
+                        textoStatus.innerText = `O cilindro atingiu a marca de ${viagensEfetuadas}/3 da fita métrica.`;
+                    } else {
+                        btnAcao.innerText = "Reiniciar Experimento";
+                        textoStatus.innerText = "Perfeito! Repare na régua: a terceira medida bateu exatamente na marca 1/1 (Cheio)!";
+                    }
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+            
+            // Atualiza as posições das fita métrica na tela a cada render do frame
+            atualizarPosicaoEtiquetasHTML();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+    </script>
+</body>
+</html>

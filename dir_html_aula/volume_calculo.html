@@ -20,7 +20,6 @@
             overflow: hidden;
         }
 
-        /* O Canvas agora é o plano de fundo total da aplicação */
         #canvas-container {
             position: absolute;
             top: 0;
@@ -30,57 +29,43 @@
             z-index: 1;
         }
 
-        /* Interface principal sobreposta ao 3D */
         .dashboard {
             position: relative;
             display: flex;
             flex-direction: row; 
-            justify-content: flex-end; /* Alinha o painel de controles à direita */
-            align-items: flex-start; /* Alinha ao topo para respeitar o deslocamento para baixo */
+            justify-content: flex-end; 
+            align-items: flex-start; 
             width: 100%;
             height: 100%; 
             padding: 0 40px;
-            pointer-events: none; /* Permite interagir com o 3D por trás das áreas vazias */
+            pointer-events: none; 
             z-index: 2;
         }
 
-        /* Painel de Controles e Fórmulas (Lado Direito) */
-        .painel-esquerdo {
+        .painel-direito {
             flex: none;
             width: 100%;
             max-width: 450px; 
             min-width: 320px;
             position: relative;
-            top: 100px; 
-            height: calc(100% - 190px); 
+            top: 160px; /* Ajustado de 150px para 140px (-10px) */
+            height: calc(100% - 180px); /* Ajustado de 190px para 150px para dar mais tela */
             background: rgba(26, 26, 30, 0.9);
             border: 1px solid #27272a;
             border-radius: 16px;
-            padding: 25px;
+            padding: 20px; /* Reduzido de 25px para 20px */
             display: flex;
             flex-direction: column; 
-            gap: 20px;
+            gap: 10px; /* Reduzido de 16px para 10px */
             overflow-y: auto; 
             backdrop-filter: blur(8px);
-            pointer-events: auto; /* Reativa cliques e interações dentro do painel */
-        }
-
-        .coluna-info {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            color: #ffffff;
-            font-weight: 700;
+            pointer-events: auto; 
         }
 
         .secao-formulas {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px; /* Reduzido de 12px para 10px */
         }
 
         .grid-formulas {
@@ -93,7 +78,7 @@
             background: #222226;
             border: 1px solid #27272a;
             border-radius: 10px;
-            padding: 15px;
+            padding: 10px; /* Reduzido de 15px para 10px (-5px padding sup/inf) */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -124,19 +109,19 @@
             background: rgba(0, 255, 136, 0.03);
             border: 1px solid #00ff88;
             border-radius: 10px;
-            padding: 18px;
+            padding: 12px; /* Reduzido de 18px para 12px (-6px padding sup/inf) */
             text-align: center;
         }
 
         .card-volume h2 {
             font-size: 1rem;
             color: #00ff88;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .equacao-principal {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: #00ff88;
         }
@@ -144,11 +129,17 @@
         .controle-grupo {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px; /* Reduzido de 8px para 6px */
             background: #222226;
-            padding: 15px;
+            padding: 10px; /* Reduzido de 15px para 10px (-5px padding sup/inf) */
             border-radius: 10px;
             border: 1px solid #27272a;
+        }
+
+        .controle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
         .controle-header {
@@ -162,7 +153,22 @@
             font-weight: 600;
         }
 
-        /* Estilização do Input Numérico Digitável */
+        .select-custom {
+            background: #121214;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            color: #ffffff;
+            padding: 6px 12px;
+            outline: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .select-custom option {
+            background: #121214;
+        }
+
         .input-container {
             display: flex;
             align-items: center;
@@ -183,7 +189,6 @@
             text-align: right;
         }
 
-        /* Remove as setas padrão do input number */
         .input-container input[type="number"]::-webkit-inner-spin-button,
         .input-container input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -232,7 +237,7 @@
             background: #121214;
             border: 1px solid #27272a;
             border-radius: 10px;
-            padding: 18px;
+            padding: 12px; /* Reduzido de 18px para 12px */
             text-align: center;
             margin-top: auto; 
         }
@@ -246,17 +251,36 @@
 </head>
 <body>
 
-    <!-- Cenário 3D ocupando o fundo de forma livre -->
     <div id="canvas-container"></div>
 
-    <!-- Interface com Painel de Controles posicionado à direita -->
     <div class="dashboard">
-        <div class="painel-esquerdo">
+        <div class="painel-direito">
+            
+            <div class="controle-grid">
+                <div class="controle-grupo">
+                    <label style="font-size: 0.85rem; font-weight: 600;">Unidade</label>
+                    <select id="select-unidade" class="select-custom">
+                        <option value="m">Metros (m)</option>
+                        <option value="cm">Centímetros (cm)</option>
+                        <option value="mm">Milímetros (mm)</option>
+                    </select>
+                </div>
+                <div class="controle-grupo">
+                    <label style="font-size: 0.85rem; font-weight: 600;">Valor de Pi (π)</label>
+                    <select id="select-pi" class="select-custom">
+                        <!-- <option value="dinamico">π (JS Math)</option> -->
+                        <option value="3.14">3.14</option>
+                        <option value="3">3</option>
+                        <option value="simbolo">π</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="secao-formulas">
                 <div class="grid-formulas">
                     <div class="card-sub border-blue">
                         <h3>Área da Base (A<sub>b</sub>)</h3>
-                        <div class="formula-pequena" style="color: #0088ff;">A<sub>b</sub> = π · r²</div>
+                        <div class="formula-pequena" style="color: #0088ff;">A<sub>b</sub> = <span class="lbl-pi-formula">π</span> · r²</div>
                     </div>
                     <div class="card-sub" style="border-color: #ff9900;">
                         <h3>Altura (h)</h3>
@@ -266,51 +290,56 @@
 
                 <div class="card-volume">
                     <h2>V = 1/3 · A<sub>b</sub> · h</h2>
-                    <div class="equacao-principal">V = 1/3 · π · r² · h</div>
+                    <div class="equacao-principal">V = 1/3 · <span class="lbl-pi-formula">π</span> · r² · h</div>
                 </div>
             </div>
 
-            <!-- Controle do Raio -->
             <div class="controle-grupo">
                 <div class="controle-header">
                     <label>Raio (r)</label>
                     <div class="input-container">
                         <input type="number" id="txt-raio" min="0.5" max="10.0" step="0.1" value="2.5">
-                        <span>m</span>
+                        <span class="lbl-unidade">m</span>
                     </div>
                 </div>
                 <input type="range" id="slide-raio" class="slider" min="0.5" max="10.0" step="0.1" value="2.5">
                 <div class="slider-limites">
-                    <span>0.5 m</span>
-                    <span>10.0 m</span>
+                    <span>0.5 <span class="lbl-unidade">m</span></span>
+                    <span>10.0 <span class="lbl-unidade">m</span></span>
                 </div>
             </div>
 
-            <!-- Controle da Altura -->
             <div class="controle-grupo">
                 <div class="controle-header">
                     <label>Altura (h)</label>
                     <div class="input-container" style="border-color: #ff9900;">
                         <input type="number" id="txt-altura" min="1.0" max="20.0" step="0.1" value="5.0" style="color: #ff9900;">
-                        <span>m</span>
+                        <span class="lbl-unidade">m</span>
                     </div>
                 </div>
                 <input type="range" id="slide-altura" class="slider" min="1.0" max="20.0" step="0.1" value="5.0">
                 <div class="slider-limites">
-                    <span>1.0 m</span>
-                    <span>20.0 m</span>
+                    <span>1.0 <span class="lbl-unidade">m</span></span>
+                    <span>20.0 <span class="lbl-unidade">m</span></span>
                 </div>
             </div>
 
             <div class="resultado-container">
+                <p style="text-align: center;
+                color: rgba(255, 255, 255, 0.4);
+                font-size: 0.8rem;
+                background: linear-gradient(to top, rgba(18, 18, 20, 0.8), rgba(18, 18, 20, 0));
+                padding-top: 5px;">
+                    * A representação 3D é ilustrativa. Os valores exatos podem variar ligeiramente da imagem.
+                </p>
+                <br>
                 <div class="resultado-texto">
-                    Volume (V) ≈ <span id="txt-volume" style="color: #00ff88;">0.00</span> m³
+                    Volume (V) <span id="sinal-relacao">≈</span> <span id="txt-volume" style="color: #00ff88;">0.00</span> <span id="lbl-unidade-cubica">m³</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SCRIPTS IMPORTADOS (THREE.JS) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
@@ -318,11 +347,17 @@
         let scene, camera, renderer, controls;
         let coneMesh, baseMesh, linhaAltura;
 
+        const selectUnidade = document.getElementById('select-unidade');
+        const selectPi = document.getElementById('select-pi');
         const slideRaio = document.getElementById('slide-raio');
         const slideAltura = document.getElementById('slide-altura');
         const txtRaio = document.getElementById('txt-raio');
         const txtAltura = document.getElementById('txt-altura');
         const txtVolume = document.getElementById('txt-volume');
+        const sinalRelacao = document.getElementById('sinal-relacao');
+        const lblUnidadeCubica = document.getElementById('lbl-unidade-cubica');
+        const lblUnidades = document.querySelectorAll('.lbl-unidade');
+        const lblPiFormulas = document.querySelectorAll('.lbl-pi-formula');
 
         init();
 
@@ -352,6 +387,43 @@
 
             const grid = new THREE.GridHelper(40, 40, 0x27272a, 0x1e1e22); 
             scene.add(grid);
+
+            // Criar malhas base iniciais
+            const geoCone = new THREE.ConeGeometry(1, 1, 64, 1, true);
+            const matCone = new THREE.MeshStandardMaterial({
+                color: 0xff0066,
+                transparent: true,
+                opacity: 0.55,
+                side: THREE.DoubleSide,
+                roughness: 0.3
+            });
+            coneMesh = new THREE.Mesh(geoCone, matCone);
+            scene.add(coneMesh);
+
+            const geoBase = new THREE.CircleGeometry(1, 64);
+            const matBase = new THREE.MeshStandardMaterial({
+                color: 0x0088ff,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            baseMesh = new THREE.Mesh(geoBase, matBase);
+            baseMesh.rotation.x = -Math.PI / 2; 
+            baseMesh.position.y = 0.01; 
+            scene.add(baseMesh);
+
+            const pontosLinha = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 1, 0)
+            ];
+            const geoLinha = new THREE.BufferGeometry().setFromPoints(pontosLinha);
+            const matLinha = new THREE.LineBasicMaterial({ color: 0xff9900, linewidth: 3 });
+            linhaAltura = new THREE.Line(geoLinha, matLinha);
+            scene.add(linhaAltura);
+
+            // Ouvintes para seletores
+            selectUnidade.addEventListener('change', atualizarUnidadesTexto);
+            selectPi.addEventListener('change', mudarConfiguracaoPi);
 
             // Ouvintes para os Sliders
             slideRaio.addEventListener('input', (e) => {
@@ -383,7 +455,6 @@
                 atualizarCenario();
             });
 
-            // Forçar correção de limites vazios quando o usuário desfocar do campo
             txtRaio.addEventListener('blur', (e) => {
                 if (e.target.value === "") e.target.value = slideRaio.value;
             });
@@ -391,65 +462,80 @@
                 if (e.target.value === "") e.target.value = slideAltura.value;
             });
 
-            gerarEstruturaCone(parseFloat(slideRaio.value), parseFloat(slideAltura.value));
-            calcularMatematica();
+            atualizarCenario();
 
             window.addEventListener('resize', onWindowResize);
             animate();
         }
 
-        function gerarEstruturaCone(raio, altura) {
-            if (coneMesh) scene.remove(coneMesh);
-            if (baseMesh) scene.remove(baseMesh);
-            if (linhaAltura) scene.remove(linhaAltura);
+        function atualizarUnidadesTexto() {
+            const unidadeSelecionada = selectUnidade.value;
+            lblUnidades.forEach(el => el.innerText = unidadeSelecionada);
+            lblUnidadeCubica.innerText = unidadeSelecionada + '³';
+            atualizarCenario();
+        }
 
-            const geoCone = new THREE.ConeGeometry(raio, altura, 64, 1, true);
-            const matCone = new THREE.MeshStandardMaterial({
-                color: 0xff0066,
-                transparent: true,
-                opacity: 0.55,
-                side: THREE.DoubleSide,
-                roughness: 0.3
+        function mudarConfiguracaoPi() {
+            const piSel = selectPi.value;
+            lblPiFormulas.forEach(el => {
+                el.innerText = (piSel === 'dinamico' || piSel === 'simbolo') ? 'π' : piSel;
             });
-            coneMesh = new THREE.Mesh(geoCone, matCone);
-            coneMesh.position.y = altura / 2; 
-            scene.add(coneMesh);
 
-            const geoBase = new THREE.CircleGeometry(raio, 64);
-            const matBase = new THREE.MeshStandardMaterial({
-                color: 0x0088ff,
-                transparent: true,
-                opacity: 0.6,
-                side: THREE.DoubleSide
-            });
-            baseMesh = new THREE.Mesh(geoBase, matBase);
-            baseMesh.rotation.x = -Math.PI / 2; 
-            baseMesh.position.y = 0.01; 
-            scene.add(baseMesh);
+            const segmentos = 64; 
 
-            const pontosLinha = [
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, altura, 0)
-            ];
-            const geoLinha = new THREE.BufferGeometry().setFromPoints(pontosLinha);
-            const matLinha = new THREE.LineBasicMaterial({ color: 0xff9900, linewidth: 3 });
-            linhaAltura = new THREE.Line(geoLinha, matLinha);
-            scene.add(linhaAltura);
+            coneMesh.geometry.dispose();
+            coneMesh.geometry = new THREE.ConeGeometry(1, 1, segmentos, 1, true);
+
+            baseMesh.geometry.dispose();
+            baseMesh.geometry = new THREE.CircleGeometry(1, segmentos);
+
+            atualizarCenario();
         }
 
         function calcularMatematica() {
             const raio = parseFloat(slideRaio.value) || 0.5;
             const altura = parseFloat(slideAltura.value) || 1.0;
-            const volume = (1/3) * Math.PI * Math.pow(raio, 2) * altura;
-
-            txtVolume.innerText = volume.toFixed(2);
+            const piSel = selectPi.value;
+            
+            if (piSel === 'simbolo') {
+                sinalRelacao.innerText = "=";
+                const restanteCalculo = (1/3) * Math.pow(raio, 2) * altura;
+                txtVolume.innerText = restanteCalculo.toFixed(2) + "π";
+            } else {
+                sinalRelacao.innerText = "≈";
+                let piUtilizado = Math.PI;
+                if (piSel === '3.14') piUtilizado = 3.14;
+                if (piSel === '3') piUtilizado = 3;
+                
+                const volume = (1/3) * piUtilizado * Math.pow(raio, 2) * altura;
+                txtVolume.innerText = volume.toFixed(2);
+            }
         }
 
         function atualizarCenario() {
-            const raio = parseFloat(slideRaio.value) || 0.5;
-            const altura = parseFloat(slideAltura.value) || 1.0;
+            let raio = parseFloat(slideRaio.value) || 0.5;
+            let altura = parseFloat(slideAltura.value) || 1.0;
             
-            gerarEstruturaCone(raio, altura);
+            let fatorUnidade = 1.0;
+            if (selectUnidade.value === 'cm') fatorUnidade = 0.6;
+            if (selectUnidade.value === 'mm') fatorUnidade = 0.2;
+
+            const raioFinal = raio * fatorUnidade;
+            const alturaFinal = altura * fatorUnidade;
+
+            if (coneMesh) {
+                coneMesh.scale.set(raioFinal, alturaFinal, raioFinal);
+                coneMesh.position.y = alturaFinal / 2;
+            }
+
+            if (baseMesh) {
+                baseMesh.scale.set(raioFinal, raioFinal, 1);
+            }
+
+            if (linhaAltura) {
+                linhaAltura.scale.set(1, alturaFinal, 1);
+            }
+
             calcularMatematica();
         }
 
